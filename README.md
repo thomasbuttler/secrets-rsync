@@ -20,7 +20,7 @@ The client invocation is `rsync -e 'ssh -i /etc/ssh/ssh_host_rsa_key -l secrets-
 
 In the `$HOME/.ssh/authorized_keys` file for account secrets-rsync, the public key for the host specifies a forced command:
 ```
-command="/usr/local/bin/secrets-rsync client-host-name",no-port-forwarding,no-agent,no-pty,no-X11-forwarding ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnMo+Nh15wBUcCWnzjXQXcex6CnpElu37opv/W3kwd51dYbbBvasMQsiS5CouUPg63djN5Z9DXGsIrzVkOYBvNdxOUf5LHYXGexaXaqQEOUYQGRNrEdmGwlDs/WLsMs2Z6Zf8Uh2cK78zibe8OPXba2U095pmoBm5YJq/4ONwnooIK2aPrtNOvn/QQOWl9ZL0X70q7UXazkBUi32R2mIEjxvQd97Yjx0v3vr8lzIzebGUTsWKcmAhizxlztj4wCxv0ZPHYtuDRi6gSMUBzwLdhZb5qtlw4ZmCQXP8vbEIJO0PLww8fXjP2b5PVQyge6YoYQkxTiy6Un+4AlmRgyDe5
+command="/usr/local/bin/secrets-rsync client-host-name",no-port-forwarding,no-agent-forwarding,no-pty,no-X11-forwarding ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnMo+Nh15wBUcCWnzjXQXcex6CnpElu37opv/W3kwd51dYbbBvasMQsiS5CouUPg63djN5Z9DXGsIrzVkOYBvNdxOUf5LHYXGexaXaqQEOUYQGRNrEdmGwlDs/WLsMs2Z6Zf8Uh2cK78zibe8OPXba2U095pmoBm5YJq/4ONwnooIK2aPrtNOvn/QQOWl9ZL0X70q7UXazkBUi32R2mIEjxvQd97Yjx0v3vr8lzIzebGUTsWKcmAhizxlztj4wCxv0ZPHYtuDRi6gSMUBzwLdhZb5qtlw4ZmCQXP8vbEIJO0PLww8fXjP2b5PVQyge6YoYQkxTiy6Un+4AlmRgyDe5
 ```
 
 The script ``ingest-ssh-known-hosts`` translates a `known_hosts` file into such an `authorized_keys` file.  It requires that the first host name on the line (the one before any comma or space) be the name given as the one argument to `/usr/local/bin/secrets-rsync`.
