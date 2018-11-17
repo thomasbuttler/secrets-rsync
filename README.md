@@ -26,13 +26,11 @@ command="/usr/local/bin/rrsync -ro client-host-name",no-port-forwarding,no-agent
 ```
 There is one such line per client host.
 
-The script ``ingest-ssh-known-hosts`` translates a `known_hosts` file into such an `authorized_keys` file.  It requires that the first host name on the line (the one before any comma or space) be the name given as the client-host-name (subdirectory) argument to `/usr/local/bin/rrsync`.
-
-The perl script rrsync, included in most distributions of rsync, typically in the documentation section, examines `$SSH_ORIGINAL_COMMAND` to sanitize the rsync server invocation.  The `-ro` flag specifies the client may only read.  In the home directory for the secrets-rsync user, there is a subdirectory per client in which one puts the retrievable files.
+The perl script `rrsync`, included in most distributions of rsync, typically in the documentation section, examines `$SSH_ORIGINAL_COMMAND` to sanitize the rsync server invocation.  The `-ro` flag specifies the client may only read.  In the home directory for the secrets-rsync user, there is a subdirectory per client in which one puts the retrievable files.
 
 The script `secrets-rsync-init` does initial setup: invoking `useradd` to create the account secrets-rsync with home directory /usr/local/lib/secrets with mode `drwx------`, and attempts to set SELinux permissions appropriately.
 
-The script `ingest-ssh-known-hosts -d` populates `~secrets-rsync/.ssh/authorized_keys` from the known_hosts file (or a single file given as a further argument); creates subdirectories in ~secrets for each client.  Modify that script to change the account name or home directory location.  Invoked without '-d', it has no effect but to print the translated known_hosts file on standard out.
+The script `ingest-ssh-known-hosts -d` populates `~secrets-rsync/.ssh/authorized_keys` from the known_hosts file (or a single file given as a further argument); creates subdirectories in ~secrets for each client.  It requires that the first host name on the line (the one before any comma or space) be the name given as the client-host-name (subdirectory) argument to `/usr/local/bin/rrsync`.  Modify `ingest-ssh-known-hosts` to change the account name or home directory location.  Invoked without '-d', it has no effect except to print the translated known_hosts file on standard out.
 
 To provide a secret file, e.g., `/root/.ssh/extra_root_key`,
 
