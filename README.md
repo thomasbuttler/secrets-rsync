@@ -16,31 +16,35 @@ It expects to use host keys, as does ansible, but could be modified if there is 
 
 Why rsync?  To preserve ctime and mtime attributes of the secret when the secret doesn't change - otherwise one would use scp.
 
-The client invocation is `rsync -e 'ssh -i /etc/ssh/ssh_host_rsa_key -l secrets-rsync' keyserver:/path/to/secret /path/to/secret`
+The client invocation is
+````rsync -e 'ssh -i /etc/ssh/ssh_host_rsa_key -l secrets-rsync' keyserver:/path/to/secret /path/to/secret```
+To have access to the host key, the client must run as root.
 
 In the `$HOME/.ssh/authorized_keys` file for account secrets-rsync, the public key for the host specifies a forced command:
 ```
-command="/usr/local/bin/secrets-rsync client-host-name",no-port-forwarding,no-agent-forwarding,no-pty,no-X11-forwarding ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnMo+Nh15wBUcCWnzjXQXcex6CnpElu37opv/W3kwd51dYbbBvasMQsiS5CouUPg63djN5Z9DXGsIrzVkOYBvNdxOUf5LHYXGexaXaqQEOUYQGRNrEdmGwlDs/WLsMs2Z6Zf8Uh2cK78zibe8OPXba2U095pmoBm5YJq/4ONwnooIK2aPrtNOvn/QQOWl9ZL0X70q7UXazkBUi32R2mIEjxvQd97Yjx0v3vr8lzIzebGUTsWKcmAhizxlztj4wCxv0ZPHYtuDRi6gSMUBzwLdhZb5qtlw4ZmCQXP8vbEIJO0PLww8fXjP2b5PVQyge6YoYQkxTiy6Un+4AlmRgyDe5
+command="/usr/local/bin/rrsync -ro client-host-name",no-port-forwarding,no-agent-forwarding,no-pty,no-X11-forwarding ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCnMo+Nh15wBUcCWnzjXQXcex6CnpElu37opv/W3kwd51dYbbBvasMQsiS5CouUPg63djN5Z9DXGsIrzVkOYBvNdxOUf5LHYXGexaXaqQEOUYQGRNrEdmGwlDs/WLsMs2Z6Zf8Uh2cK78zibe8OPXba2U095pmoBm5YJq/4ONwnooIK2aPrtNOvn/QQOWl9ZL0X70q7UXazkBUi32R2mIEjxvQd97Yjx0v3vr8lzIzebGUTsWKcmAhizxlztj4wCxv0ZPHYtuDRi6gSMUBzwLdhZb5qtlw4ZmCQXP8vbEIJO0PLww8fXjP2b5PVQyge6YoYQkxTiy6Un+4AlmRgyDe5
 ```
+There is one such line per client host.
 
-The script ``ingest-ssh-known-hosts`` translates a `known_hosts` file into such an `authorized_keys` file.  It requires that the first host name on the line (the one before any comma or space) be the name given as the one argument to `/usr/local/bin/secrets-rsync`.
+The script ``ingest-ssh-known-hosts`` translates a `known_hosts` file into such an `authorized_keys` file.  It requires that the first host name on the line (the one before any comma or space) be the name given as the client-host-name (subdirectory) argument to `/usr/local/bin/rrsync`.
 
-The script `secrets-rsync` examines `$SSH_ORIGINAL_COMMAND` to sanitize the rsync server invocation.  It accepts only read invocations.  It prefixes the source path with `/usr/local/lib/secrets/client-host-name/` The path `/usr/local/lib/secrets` is specified in `~secrets-rsync/config`.
+The perl script rrsync, included in most distributions of rsync, typically in the documentation section, examines `$SSH_ORIGINAL_COMMAND` to sanitize the rsync server invocation.  The `-ro` flag specifies the client may only read.  In the home directory for the secrets-rsync user, there is a subdirectory per client in which one puts the retrievable files.
 
-The script `secrets-rsync-init` does initial setup: invoking `useradd` to create the account secrets-rsync; populate `~secrets-rsync/config`; and create `/usr/local/lib/secrets` owned by secrets-rsync and mode `drwx------`.  Modify that script to change the account name, home directory location or secrets location.
+The script `secrets-rsync-init` does initial setup: invoking `useradd` to create the account secrets-rsync with home directory /usr/local/lib/secrets with mode `drwx------`; populate `~secrets-rsync/.ssh/authorized_keys` from the known_hosts file; and create subdirectories in ~secrets for each client.  Modify that script to change the account name or home directory location.
 
 To provide a secret file, e.g., `/root/.ssh/extra_root_key`,
 
-* place it in the parallel location within `/usr/local/lib/secrets/client-host-name`, e.g., `/usr/local/lib/secrets/client-host-name/root/.ssh/extra_root_key`
-* `chown -Rh secreets-rsync:root /usr/local/lib/secrets/client-host`
-* `chmod -R u+rX,go-rwx /usr/local/lib/secrets/client-host`
+* have forced command line as described above in `/usr/local/lib/secrets/.ssh/authorized_keys` for the cient
+* place the secret file in the parallel location within `/usr/local/lib/secrets/client-host-name`, e.g., `/usr/local/lib/secrets/client-host-name/root/.ssh/extra_root_key`
 
 The following scripts work in CentOS 7:
 
-* none yet
-
-The following scripts are under development:
-
-* `ingest-ssh-known-hosts`
-* `secrets-rsync`
 * `secrets-rsync-init`
+* `ingest-ssh-known-hosts`
+* `undo-secrets-rsync-init`
+
+Invoke `ingest-ssh-known-hosts -d /etc/ssh/ssh_known_hosts` to create the `authorized_keys` file and the directories to contain the client directories.
+
+Run the shell script `undo-secrets-rsync-init` to remove both the account, the home directory, *and thus all the secrets*.
+
+

@@ -1,0 +1,51 @@
+#!/bin/sh
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+create_directories=0
+case "$1" in
+'-d')
+    shift
+    create_directories=1
+    ;;
+esac
+
+case $# in
+0) # use system GlobalKnownHostsFile
+    KNOWN_HOSTS=`sed -n -e 's/^[ 	]*globalknownhostsfile[ 	]*//Ip' /etc/ssh/ssh_config`
+    case "$KNOWN_HOSTS" in
+    '') KNOWN_HOSTS=/etc/ssh/ssh_known_hosts;;
+    *) : ok
+    esac
+    ;;
+1)
+    KNOWN_HOSTS=$1
+    ;;
+*)
+    echo "-d to create client directories and affect ~secrets-rsync/.ssh/authorized_keys, otherwise result on stdout; no further arguments to use GlobalKnownHostsFile; one further argument to process a different file." 1>&2
+    exit 1
+    ;;
+esac
+if ! [ -f $KNOWN_HOSTS ]; then
+    echo "$KNOWN_HOSTS not found."
+    exit 2
+fi
+SECRETS_DIR=~secrets-rsync
+if [ $create_directories -eq 1 ]; then
+    {
+        [ -f ${SECRETS_DIR}/.ssh/authorized_keys ] && cat ${SECRETS_DIR}/.ssh/authorized_keys
+        perl -ane 'BEGIN { umask 0077 };' \
+               -e '$c = $F[0];' \
+               -e '$c =~ s/,.*//;' \
+               -e "mkdir '${SECRETS_DIR}/'.\${c};" \
+               -e '$c = qq{command="/usr/local/bin/rrsync -ro $c",no-port-forwarding,no-agent-forwarding,no-pty,no-X11-forwarding};' \
+               -e 'print "$c $F[1] $F[2]\n"' \
+               "$KNOWN_HOSTS"
+    } | sort -u > ${SECRETS_DIR}/.ssh/authorized_keys_new
+    mv ${SECRETS_DIR}/.ssh/authorized_keys_new ${SECRETS_DIR}/.ssh/authorized_keys
+    chown -R secrets-rsync:secrets-rsync ~secrets-rsync
+else
+        perl -ane '$c = $F[0];' \
+               -e '$c =~ s/,.*//;' \
+               -e '$c = qq{command="/usr/local/bin/rrsync -ro $c",no-port-forwarding,no-agent-forwarding,no-pty,no-X11-forwarding};' \
+               -e 'print "$c $F[1] $F[2]\n"' \
+               "$KNOWN_HOSTS"
+fi
